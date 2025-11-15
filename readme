@@ -1,0 +1,90 @@
+📦 Caching Proxy Server
+
+Lightweight HTTP caching reverse proxy with an in-memory cache, simple CLI interface, and extensible architecture.
+
+Overview
+
+This project implements a minimal yet extensible HTTP caching proxy server.
+요청을 Origin 서버로 전달하고 응답을 캐싱해 재사용함으로써 응답 속도와 효율성을 높이도록 설계되었습니다.
+학습 목적뿐 아니라 간단한 서비스·내부 테스트 환경에서도 실제로 활용 가능합니다.
+
+⸻
+
+✨ Features
+	•	In-memory Cache Layer
+	•	URL 기반 Key-Value 캐싱
+	•	getCached, setCached, clear API 제공
+	•	TTL, LRU 등 정책 확장 용이
+	•	Reverse Proxy
+	•	Origin 서버로 요청 전달 후 응답을 캐싱
+	•	Cache HIT / MISS Response Header
+	•	X-Cache: HIT
+	•	X-Cache: MISS
+	•	CLI Tool 제공
+	•	--port, --origin, --clear-cache 지원
+	•	Zero Dependency
+	•	Node.js 기본 모듈만 사용
+
+⸻
+
+🗂️ Project Structure
+cache-proxy/
+ ├── bin/
+ │    └── caching-proxy.js     # CLI entry point
+ ├── src/
+ │    ├── cache.js             # In-memory cache implementation
+ │    └── server.js            # Reverse proxy server
+ ├── package.json
+ └── README.md
+
+
+🚀 Getting Started
+
+1. Install
+git clone https://github.com/<your-repo>/caching-proxy.git
+cd caching-proxy
+npm install
+
+2. Run the Proxy Server
+caching-proxy --port 3000 --origin http://localhost:4000
+
+
+3. Clear Cache
+caching-proxy --clear-cache
+
+
+⚙️ How It Works
+
+요청 흐름
+Client → Caching Proxy → (cache MISS) → Origin Server
+                         ↑
+                       (cache HIT)
+
+Cache Lookup Example
+const cached = getCached(cacheKey);
+if (cached) {
+  res.setHeader("X-Cache", "HIT");
+  return res.end(cached);
+}
+
+Origin Fetch → Cache Store
+http.get(proxyUrl, (originRes) => {
+  let data = "";
+  originRes.on("data", chunk => data += chunk);
+  originRes.on("end", () => {
+    setCached(cacheKey, data);
+    res.setHeader("X-Cache", "MISS");
+    res.end(data);
+  });
+});
+
+
+🔧 Possible Extensions
+
+이 프로젝트는 캐싱 서버의 핵심 구조를 직접 구현하는 학습 기반 프로젝트이며, 다음 기능으로 확장 예정입니다. 
+	•	TTL(Time-to-Live)
+	•	LRU 캐싱 정책
+	•	Redis 기반 분산 캐시
+	•	Rate Limiting
+	•	Load Balancing
+	•	Kubernetes 배포
