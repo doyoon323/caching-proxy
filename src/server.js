@@ -4,7 +4,9 @@ const { getCached, setCached, clear} = require("./cache");
 module.exports = function startServer(port, origin){
     const server = http.createServer(async (req, res) => {
         const cacheKey = req.url;
-        const cached = getCached(cacheKey);
+        const cached = await getCached(cacheKey);
+        console.log("cacheKey=", req.url, "hit=", !!cached);
+
         if (cached) {
             res.setHeader("X-Cache", "HIT");
             res.writeHead(200, {"Content-Type" : "application/json"});
@@ -13,11 +15,12 @@ module.exports = function startServer(port, origin){
 
         const proxyUrl = origin + req.url;
 
-        http.get(proxyUrl, (originRes)=>{
+        //origin server get
+        http.get(proxyUrl, (originRes)=>{ 
             let data="";
             originRes.on("data", chunk => data +=chunk);
-            originRes.on("end", ()=>{
-                setCached(cacheKey,data);
+            originRes.on("end", async ()=> {
+                await setCached(cacheKey,data,10);
 
                 res.setHeader("X-Cache", "MISS");
                 res.writeHead(originRes.statusCode, originRes.headers);
@@ -33,3 +36,12 @@ module.exports = function startServer(port, origin){
             console.log(`caching proxy running at ${port}`);
         })
 }
+
+
+// redis 기반 lru 캐시 프록시 서버
+// 간단한 cdn 구현 
+// api rate limiter 
+// load balancer
+
+
+// 분산캐싱 시스템 (redis) + 쿠버네티스 배포 

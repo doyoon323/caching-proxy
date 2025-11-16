@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "bin" : {
+  "bin": {
     "caching-proxy": "bin/caching-proxy.js"
   },
   "scripts": {
@@ -12,5 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "redis": "^5.9.0"
+  }
 }
