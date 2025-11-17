@@ -1,47 +1,60 @@
 const http = require("http");
-const { getCached, setCached, clear} = require("./cache");
+const { getCached, setCached } = require("./cache");
 
-module.exports = function startServer(port, origin){
+module.exports = function startServer(port, origin) {
     const server = http.createServer(async (req, res) => {
-        const cacheKey = req.url;
-        const cached = await getCached(cacheKey);
-        console.log("cacheKey=", req.url, "hit=", !!cached);
 
-        if (cached) {
-            res.setHeader("X-Cache", "HIT");
-            res.writeHead(200, {"Content-Type" : "application/json"});
-            return res.end(cached);
+        // 캐싱은 GET 요청만 적용 (POST/PUT은 캐싱하면 안 됨)
+        const isCacheable = req.method === "GET";
+        const cacheKey = req.url;
+
+        // GET 요청이면 캐시 체크
+        if (isCacheable) {
+            const cached = await getCached(cacheKey);
+            console.log("cacheKey=", cacheKey, "hit=", !!cached);
+
+            if (cached) {
+                res.setHeader("X-Cache", "HIT");
+                res.writeHead(200, { "Content-Type": "application/json" });
+                return res.end(cached);
+            }
         }
 
+        // MISS → LB or origin으로 전달
         const proxyUrl = origin + req.url;
 
-        //origin server get
-        http.get(proxyUrl, (originRes)=>{ 
-            let data="";
-            originRes.on("data", chunk => data +=chunk);
-            originRes.on("end", async ()=> {
-                await setCached(cacheKey,data,10);
+        const originReq = http.request(proxyUrl, {
+            method: req.method,
+            headers: req.headers
+        }, (originRes) => {
+            let data = "";
 
-                res.setHeader("X-Cache", "MISS");
+            originRes.on("data", chunk => data += chunk);
+            originRes.on("end", async () => {
+
+                // GET 요청만 캐싱
+                if (isCacheable) {
+                    await setCached(cacheKey, data);
+                }
+
+                res.setHeader("X-Cache", isCacheable ? "MISS" : "NO-CACHE");
                 res.writeHead(originRes.statusCode, originRes.headers);
                 res.end(data);
-            }).on("error", err => {
-                res.writeHead(500);
-                res.end("Origin request failed");
             });
+        });
+
+        // body forwarding (POST, PUT, PATCH 요청 지원)
+        req.on("data", chunk => originReq.write(chunk));
+        req.on("end", () => originReq.end());
+
+        originReq.on("error", err => {
+            console.error("Proxy Error:", err);
+            res.writeHead(500);
+            res.end("Origin request failed");
         });
     });
 
-    server.listen(port, () =>{
-            console.log(`caching proxy running at ${port}`);
-        })
-}
-
-
-// redis 기반 lru 캐시 프록시 서버
-// 간단한 cdn 구현 
-// api rate limiter 
-// load balancer
-
-
-// 분산캐싱 시스템 (redis) + 쿠버네티스 배포 
+    server.listen(port, () => {
+        console.log(`caching proxy running at ${port}`);
+    });
+};
