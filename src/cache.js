@@ -1,5 +1,11 @@
 const redis = require("redis");
-const client = redis.createClient();
+//const client = redis.createClient(); // default로 localhost 연결
+const client = redis.createClient({
+  socket: {
+    host: process.env.REDIS_HOST,  // "redis"
+    port: process.env.REDIS_PORT,  // "6379"
+  }
+});
 client.connect();
 
 module.exports = {

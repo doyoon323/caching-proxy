@@ -14,7 +14,7 @@ if (argv.length == 0){
 
 //clear cache 
 if (argv.includes("--clear-cache")) {
-    require("../src/cache").clear();
+    require("./src/cache").clear();
     console.log("Cache cleared");
     process.exit(0);
 }
@@ -31,19 +31,9 @@ if (portIndex === -1 || originIndex === -1) {
 const port = parseInt(argv[portIndex + 1], 10);
 const origin = argv[originIndex + 1];
 
+
+//여기에 라우팅 기능 추가하면 서비스 라우팅도 된다
+
+
+
 require("../src/server")(port, origin);
-
-
-/*
-
-[
-  "/usr/local/bin/node",        // Node 실행 파일 경로
-  "/usr/local/bin/caching-proxy", // 실행한 js 파일 경로
-  "--port",
-  "3000",
-  "--origin",
-  "http://localhost:4000"
-]
-
-
-*/
